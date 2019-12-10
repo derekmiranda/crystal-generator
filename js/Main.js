@@ -1,169 +1,187 @@
 var Dog = Dog || {};
 
 Dog.Main = (function() {
-	// scene vars
-	var scene, camera, renderer, orbitControls;
+  // scene vars
+  var scene, camera, renderer, orbitControls;
 
-	// canvas capture vars
-	var canvasImageData;
-	var getCanvasImageData = false;
-	var ONCE = 'once';
+  // canvas capture vars
+  var canvasImageData;
+  var getCanvasImageData = false;
+  var ONCE = "once";
 
-	// texture vars
-	var textureBumpMapLoader, textureMapBump;
+  // texture vars
+  var textureBumpMapLoader, textureMapBump;
 
-	// Should scene show helpers
-	var USE_HELPERS = false;
+  // Should scene show helpers
+  var USE_HELPERS = false;
 
-	function setup() {
+  function setup() {
+    textureBumpMapLoader = new THREE.TextureLoader();
 
-		textureBumpMapLoader = new THREE.TextureLoader();
+    // init scene
+    scene = new THREE.Scene();
 
-		// init scene
-		scene = new THREE.Scene();
+    // init camera
+    camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      1,
+      10000
+    );
+    camera.position.x = Dog.Utils.randomRange(300, 500);
+    camera.position.y = Dog.Utils.randomRange(300, 500);
+    camera.position.z = Dog.Utils.randomRange(300, 500);
 
-		// init camera
-		camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
-		camera.position.x = Dog.Utils.randomRange(300, 500);
-		camera.position.y = Dog.Utils.randomRange(300, 500);
-		camera.position.z = Dog.Utils.randomRange(300, 500);
+    console.log("Main.js", camera.position);
 
-		console.log('Main.js', camera.position);
+    camera.lookAt(0, 0, 0);
 
-		camera.lookAt(0,0,0)
+    // init renderer
+    renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.autoClear = false;
 
-		// init renderer
-		renderer = new THREE.WebGLRenderer({
-			antialias: true,
-			alpha: true
-		});
-		renderer.setSize(window.innerWidth, window.innerHeight);
-		renderer.autoClear = false;
+    document.body.appendChild(renderer.domElement);
 
-		document.body.appendChild(renderer.domElement);
+    // add controls
+    orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
 
-		// add controls
-		orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+    // add window resize handler
+    window.addEventListener("resize", onWindowResize, false);
 
+    // load images
+    // textureBumpMapLoader.load('./img/logo_dog.png', function(texture) {
+    // 	textureMapBump = texture;
 
-		// add window resize handler
-		window.addEventListener('resize', onWindowResize, false);
+    // 	init();
+    // });
+    init();
 
-		// load images
-		textureBumpMapLoader.load('./img/logo_dog.png', function(texture) {
-			textureMapBump = texture;
+    if (USE_HELPERS) scene.add(new THREE.AxisHelper(500));
+  }
 
-			init();
-		});
+  function init() {
+    // add content
+    addLighting();
+    addMesh();
 
-		if (USE_HELPERS) scene.add(new THREE.AxisHelper(500));
-	}
+    // init keyboard listener
+    initKeyboard();
+  }
 
-	function init() {
+  function initKeyboard() {
+    // listen for keystrokes
+    document.body.addEventListener("keyup", function(event) {
+      // console.info('event.keyCode', event.keyCode);
 
-		// add content
-		addLighting();
-		addMesh();
+      switch (event.keyCode) {
+        case 80: // p
+          exportCanvasImageDataToPNG();
+          break;
+      }
+    });
+  }
 
-		// init keyboard listener
-		initKeyboard();
-	}
+  // gets image data
+  function exportCanvasImageDataToPNG() {
+    getCanvasImageData = true;
+    render(ONCE);
 
-	function initKeyboard() {
-		// listen for keystrokes
-		document.body.addEventListener("keyup", function(event) {
-			// console.info('event.keyCode', event.keyCode);
+    var win = window.open("", "Canvas Image");
+    var canvas = renderer.domElement;
+    var src = canvas.toDataURL("image/png");
 
-			switch (event.keyCode) {
-				case 80: // p
-					exportCanvasImageDataToPNG();
-					break;
-			}
-		});
-	}
+    win.document.write(
+      "<img src='" +
+        canvasImageData +
+        "' width='" +
+        canvas.width +
+        "' height='" +
+        canvas.height +
+        "'/>"
+    );
+  }
 
-	// gets image data 
-	function exportCanvasImageDataToPNG() {
-		getCanvasImageData = true;
-		render(ONCE);
+  function onWindowResize() {
+    // Update camera and renderer
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
 
-		var win = window.open("", "Canvas Image");
-		var canvas = renderer.domElement;
-		var src = canvas.toDataURL("image/png");
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }
 
-		win.document.write("<img src='" + canvasImageData + "' width='" + canvas.width + "' height='" + canvas.height + "'/>");
-	}
+  function addLighting() {
+    // Add a light
+    var spotLight1 = new THREE.DirectionalLight(0xffffff, 0.75);
+    spotLight1.position.set(
+      Dog.Utils.randomRange(300, 500),
+      Dog.Utils.randomRange(300, 500),
+      Dog.Utils.randomRange(300, 500)
+    );
+    spotLight1.target.position.set(0, 0, 0);
+    scene.add(spotLight1);
 
-	function onWindowResize() {
-		// Update camera and renderer
-		camera.aspect = window.innerWidth / window.innerHeight;
-		camera.updateProjectionMatrix();
+    // helper
+    // if (USE_HELPERS) scene.add(new THREE.DirectionalLightHelper(spotLight1));
 
-		renderer.setSize(window.innerWidth, window.innerHeight);
-	}
+    // add another spotlight
+    var spotLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+    spotLight2.position.set(
+      Dog.Utils.randomRange(-300, -500),
+      Dog.Utils.randomRange(-300, -500),
+      Dog.Utils.randomRange(-300, -500)
+    );
+    spotLight2.target.position.set(0, 0, 0);
+    scene.add(spotLight2);
 
-	function addLighting() {
-		// Add a light
-		var spotLight1 = new THREE.DirectionalLight(0xffffff, 0.75);
-		spotLight1.position.set(Dog.Utils.randomRange(300, 500), Dog.Utils.randomRange(300, 500), Dog.Utils.randomRange(300, 500));
-		spotLight1.target.position.set(0, 0, 0);
-		scene.add(spotLight1);
+    // helper
+    // if (USE_HELPERS) scene.add(new THREE.DirectionalLightHelper(spotLight2));
 
-		// helper
-		if (USE_HELPERS) scene.add(new THREE.DirectionalLightHelper(spotLight1));
+    // Add and additional AmbientLight
+    // scene.add(new THREE.AmbientLight(0x222222));
+  }
 
-		// add another spotlight
-		var spotLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
-		spotLight2.position.set(Dog.Utils.randomRange(-300, -500), Dog.Utils.randomRange(-300, -500), Dog.Utils.randomRange(-300, -500));
-		spotLight2.target.position.set(0, 0, 0);
-		scene.add(spotLight2);
+  function addMesh() {
+    // create a cube and add it to scene
+    var geometry = new THREE.BoxGeometry(200, 200, 200);
 
-		// helper
-		if (USE_HELPERS) scene.add(new THREE.DirectionalLightHelper(spotLight2));
+    var material = new THREE.MeshPhongMaterial({
+      color: 0x00ff00,
+      shading: THREE.FlatShading,
+      bumpScale: 0.5
+    });
 
-		// Add and additional AmbientLight
-		scene.add(new THREE.AmbientLight(0x222222));
-	}
+    var mesh = new THREE.Mesh(geometry, material);
 
-	function addMesh() {
-		// create a cube and add it to scene
-		var geometry = new THREE.BoxGeometry(200, 200, 200);
+    // give it some random rotation
+    // mesh.rotation.y = Dog.Utils.degToRad(Dog.Utils.randomRange(45, 60));
 
-		var material = new THREE.MeshPhongMaterial({
-			color: 0xff0000,
-			shading: THREE.FlatShading,
-			bumpMap: textureMapBump,
-			bumpScale: 0.5
-		});
+    // Add mesh to scene
+    scene.add(mesh);
+  }
 
-		var mesh = new THREE.Mesh(geometry, material);
+  function render(howManyTimes) {
+    /* If we are rendering for an exportCanvasImageDataToPNG then DO NOT requestAnimationFrame as can speed up animations that are called on render */
 
-		// give it some random rotation
-		// mesh.rotation.y = Dog.Utils.degToRad(Dog.Utils.randomRange(45, 60));
+    if (howManyTimes !== ONCE) requestAnimationFrame(render);
 
-		// Add mesh to scene
-		scene.add(mesh);
-	}
+    renderer.clear();
+    renderer.render(scene, camera);
+    orbitControls.update();
 
-	function render(howManyTimes) {
-		/* If we are rendering for an exportCanvasImageDataToPNG then DO NOT requestAnimationFrame as can speed up animations that are called on render */
+    if (getCanvasImageData === true) {
+      canvasImageData = renderer.domElement.toDataURL();
+      getCanvasImageData = false;
+    }
+  }
 
-		if (howManyTimes !== ONCE) requestAnimationFrame(render);
-
-		renderer.clear();
-		renderer.render(scene, camera);
-		orbitControls.update();
-
-		if (getCanvasImageData === true) {
-			canvasImageData = renderer.domElement.toDataURL();
-			getCanvasImageData = false;
-		}
-	}
-
-	return {
-		init: function() {
-			setup();
-			render();
-		}
-	};
+  return {
+    init: function() {
+      setup();
+      render();
+    }
+  };
 })();
